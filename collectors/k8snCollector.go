@@ -26,9 +26,6 @@ var (
 	k8s_node_status = prometheus.NewDesc("k8s_node_status", "k8s node status", node_label, nil)
 	k8s_node_container_total = prometheus.NewDesc("k8s_node_container_total", "k8s node containers in total", node_label, nil)
 	k8s_node_uptime = prometheus.NewDesc("k8s_node_uptime", "k8s node up time", node_label, nil)
-	k8s_node_filesystem_total = prometheus.NewDesc("k8s_node_filesystem_total", "k8s node filesystem in total", node_label, nil)
-	k8s_node_filesystem_used = prometheus.NewDesc("k8s_node_filesystem_used", "k8s node filesystem in used", node_label, nil)
-	k8s_node_filesystem_avail = prometheus.NewDesc("k8s_node_filesystem_avail", "k8s node filesystem in avail", node_label, nil)
 
 )
 
@@ -58,7 +55,7 @@ func (c K8sNodeCollector) Collect(ch chan<- prometheus.Metric) {
 	label := node.Labels["node"]
 	var status =""
 	for _,v := range node.Status.Conditions{
-		if v.Type == "ready" {
+		if v.Type == "Ready" {
 			status = string(v.Status)
 			break
 		}
@@ -101,8 +98,8 @@ func (c K8sNodeCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 	length := len(ms)
-	latest := ms[length-1]
-	secondlatest := ms[length-2]
+	latest := ms[length-1]//倒数第一个
+	secondlatest := ms[length-2]//倒数第二个
 	deltatime := latest.Timestamp.UnixNano() - secondlatest.Timestamp.UnixNano()
 	deltacputime := int64(latest.Cpu.Usage.Total - secondlatest.Cpu.Usage.Total)
 	core := node.Status.Capacity.Cpu().Value()
@@ -114,6 +111,11 @@ func (c K8sNodeCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(k8s_node_memory_total, prometheus.GaugeValue, float64(totalmemory),labelvalues...)
 	ch <- prometheus.MustNewConstMetric(k8s_node_memory_avlil, prometheus.GaugeValue, float64(totalmemory)-memoryused,labelvalues...)
 	fsstate := latest.Filesystem
+	node_label=append(node_label,"device")
+	k8s_node_filesystem_total:= prometheus.NewDesc("k8s_node_filesystem_total", "k8s node filesystem in total", node_label, nil)
+	k8s_node_filesystem_used := prometheus.NewDesc("k8s_node_filesystem_used", "k8s node filesystem in used", node_label, nil)
+	k8s_node_filesystem_avail := prometheus.NewDesc("k8s_node_filesystem_avail", "k8s node filesystem in avail", node_label, nil)
+
 	for _,state := range fsstate {
 		capacity := state.Capacity
 		used := state.Usage

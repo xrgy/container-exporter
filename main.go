@@ -11,6 +11,7 @@ import (
 	"container-exporter/config"
 	"github.com/gorilla/mux"
 	"container-exporter/collectors/api"
+	"log"
 )
 var listenAddress = kingpin.Flag("web.listen-address","Address to listen on for web " +
 	"interface and telemetry.").Default(":9109").String()
@@ -20,7 +21,11 @@ var listenAddress = kingpin.Flag("web.listen-address","Address to listen on for 
 func runCollector(collector prometheus.Collector,w http.ResponseWriter,r *http.Request)  {
 	registry:= prometheus.NewRegistry()
 	registry.MustRegister(collector)
-	h:=promhttp.HandlerFor(registry,promhttp.HandlerOpts{})
+	gatherers := prometheus.Gatherers{
+		prometheus.DefaultGatherer,
+		registry,
+	}
+	h:=promhttp.HandlerFor(gatherers,promhttp.HandlerOpts{})
 	h.ServeHTTP(w,r)
 }
 func init() {
@@ -43,14 +48,16 @@ func handler(w http.ResponseWriter,r *http.Request)  {
 		http.Error(w,"'target' parameter must be specified",400)
 		return
 	}
+	atr:=strings.Split(fmt.Sprintf("%s",r.URL),"?")[0]
+	log.Printf(atr)
 	switch strings.Split(fmt.Sprintf("%s",r.URL),"?")[0] {
-	case "k8s":
+	case "/k8s":
 		collectorType = collectors.K8sCollector{target}
 		break
-	case "k8sc":
+	case "/k8sc":
 		collectorType = collectors.K8sContainerCollector{target}
 		break
-	case "k8sn":
+	case "/k8sn":
 		collectorType = collectors.K8sNodeCollector{target}
 		break
 	default:

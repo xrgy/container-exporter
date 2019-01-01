@@ -20,6 +20,9 @@ type K8sContainerCollector struct {
 func (c K8sContainerCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- prometheus.NewDesc("dummy", "dummy", nil, nil)
 }
+//container_cpu_usage_seconds_total
+//counter
+//容器在每个CPU内核上的累积占用时间 (单位：秒)
 var containerMetrics = []containerMetric{
 	{
 		name:"k8s_container_last_seen",
